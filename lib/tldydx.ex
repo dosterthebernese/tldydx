@@ -120,6 +120,16 @@ defmodule TLDYDX do
     end)
   end
 
+  def get_dydx() do
+    {:ok, conn} = Mongo.start_link(url: "mongodb://localhost:27017/tradellama")
+    result = Mongo.find(conn, "dydx", %{})
+    #    IO.puts("#{inspect(result)}\n")
+
+    result
+    |> Enum.to_list()
+    |> IO.inspect()
+  end
+
   def orderbook_markets() do
     markets_keys()
   end
