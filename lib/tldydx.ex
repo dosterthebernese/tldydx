@@ -123,6 +123,33 @@ defmodule TLDYDX do
     end)
   end
 
+  def get_dydx(asset_pair) do
+    {:ok, pid} =
+      Postgrex.start_link(
+        hostname: "localhost",
+        username: "postgres",
+        password: "Z3tonium",
+        database: "tradellama"
+      )
+
+    case Postgrex.prepare_execute(
+           pid,
+           "",
+           "SELECT index_price FROM dydx WHERE asset_pair like $1 order by as_of",
+           [
+             "%#{asset_pair}%"
+           ]
+         ) do
+      {:ok, qry, res} ->
+        IO.puts("ok" <> " " <> "#{inspect(res)}")
+
+      {:error, %Postgrex.Error{}} ->
+        IO.puts("end")
+    end
+
+    Process.exit(pid, :shutdown)
+  end
+
   # def get_dydx() do
   #   {:ok, conn} = Mongo.start_link(url: "mongodb://localhost:27017/tradellama")
   #   result = Mongo.find(conn, "dydx", %{})
