@@ -22,3 +22,9 @@ be found at <https://hexdocs.pm/tldydx>.
 You need to run  
 
 mix deps.get  
+
+mix compile  
+
+iex -S mix  
+
+TLDYDX.markets()  
