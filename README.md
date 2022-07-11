@@ -4,6 +4,16 @@ This is an application suite for consuming data from DYDX public facing APIs.
 
 ## Installation
 
+You need Mongo  
+
+https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/
+
+
+You need elixir  
+
+https://elixir-lang.org/install.html#gnulinux  
+
+
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 by adding `tldydx` to your list of dependencies in `mix.exs`:
 
