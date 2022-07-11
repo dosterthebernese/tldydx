@@ -41,7 +41,7 @@ defmodule TLDYDX do
   def markets() do
     gurl = gurler_markets()
 
-    IO.puts(gurl)
+    # IO.puts(gurl)
 
     case HTTPoison.get(gurl) do
       {:ok,
@@ -68,13 +68,13 @@ defmodule TLDYDX do
 
     pp_mkt = fn mkt ->
       {m, md} = mkt
-      IO.puts("   base: " <> md["baseAsset"])
-      IO.puts("  quote: " <> md["quoteAsset"])
-      IO.puts("     ip: " <> md["indexPrice"])
-      IO.puts("     op: " <> md["oraclePrice"])
+      # IO.puts("   base: " <> md["baseAsset"])
+      # IO.puts("  quote: " <> md["quoteAsset"])
+      # IO.puts("     ip: " <> md["indexPrice"])
+      # IO.puts("     op: " <> md["oraclePrice"])
 
-      {step_size, _stuff} = Float.parse(md["stepSize"])
-      {tick_size, _stuff} = Float.parse(md["tickSize"])
+      {_step_size, _stuff} = Float.parse(md["stepSize"])
+      {_tick_size, _stuff} = Float.parse(md["tickSize"])
       {index_price, _stuff} = Float.parse(md["indexPrice"])
       {oracle_price, _stuff} = Float.parse(md["oraclePrice"])
       {price_change_24h, _stuff} = Float.parse(md["priceChange24H"])
@@ -100,7 +100,7 @@ defmodule TLDYDX do
           as_of: ndt
         })
 
-      IO.puts("#{inspect(result)}\n")
+      # IO.puts("#{inspect(result)}\n")
     end
 
     Enum.each(markets(), &pp_mkt.(&1))
@@ -112,8 +112,9 @@ defmodule TLDYDX do
       if i > @an_absurdly_high_number do
         {:halt, acc}
       else
+        IO.puts(Integer.to_string(i) <> " " <> Integer.to_string(acc))
         Process.sleep(1000)
-        snapshot_markets()
+        Task.start(fn -> snapshot_markets() end)
         {:cont, acc + 1}
       end
     end)

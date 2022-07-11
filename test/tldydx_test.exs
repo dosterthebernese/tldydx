@@ -10,4 +10,11 @@ defmodule TLDYDXTest do
     mkts = TLDYDX.markets()
     assert Enum.count(mkts) == 38
   end
+
+  test "get_one_dydx" do
+    {:ok, conn} = Mongo.start_link(url: "mongodb://localhost:27017/tradellama")
+    result = Mongo.find_one(conn, "dydx", %{})
+    # IO.puts("#{inspect(result)}\n")
+    assert(is_float(result["index_price"]))
+  end
 end
