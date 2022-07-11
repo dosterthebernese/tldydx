@@ -26,7 +26,7 @@ defmodule TLDYDX.MixProject do
 
       {:httpoison, "~> 1.8"},
       {:poison, "~> 5.0"},
-      {:mongodb, ">= 0.0.0"}
+      {:postgrex, "~> 0.16.3"}
     ]
   end
 end

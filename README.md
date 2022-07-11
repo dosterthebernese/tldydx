@@ -6,7 +6,28 @@ This is an application suite for consuming data from DYDX public facing APIs.
 
 You need Mongo  
 
-https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/
+https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/  
+
+sudo systemctl start mongod  
+
+sudo systemctl stop mongod  
+
+
+Or because seems not prime time, you can use postgres  
+
+https://ubuntu.com/server/docs/databases-postgresql  
+
+sudo apt install postgresql  
+
+sudo -u postgres psql  
+
+create database tradellama  
+
+sudo -u postgres psql tradellama
+
+ALTER USER postgres with encrypted password 'Z3tonium';  
+
+I ended up using postgres  
 
 
 You need elixir  
@@ -38,3 +59,13 @@ mix compile
 iex -S mix  
 
 TLDYDX.markets()  
+
+mix.deps.update --all  
+
+mix.deps.clean --all  
+
+mix deps.get  
+
+mix compile  
+
+

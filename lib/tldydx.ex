@@ -64,14 +64,16 @@ defmodule TLDYDX do
   end
 
   def snapshot_markets() do
-    {:ok, conn} = Mongo.start_link(url: "mongodb://localhost:27017/tradellama")
+    {:ok, pid} =
+      Postgrex.start_link(
+        hostname: "localhost",
+        username: "postgres",
+        password: "Z3tonium",
+        database: "tradellama"
+      )
 
     pp_mkt = fn mkt ->
       {m, md} = mkt
-      # IO.puts("   base: " <> md["baseAsset"])
-      # IO.puts("  quote: " <> md["quoteAsset"])
-      # IO.puts("     ip: " <> md["indexPrice"])
-      # IO.puts("     op: " <> md["oraclePrice"])
 
       {_step_size, _stuff} = Float.parse(md["stepSize"])
       {_tick_size, _stuff} = Float.parse(md["tickSize"])
@@ -84,26 +86,27 @@ defmodule TLDYDX do
       {asset_resolution, _stuff} = Float.parse(md["assetResolution"])
       {:ok, ndt} = DateTime.now("Etc/UTC")
 
-      result =
-        Mongo.insert_one(conn, "dydx", %{
-          asset_pair: m,
-          base_asset: md["baseAsset"],
-          quote_asset: md["quoteAsset"],
-          index_price: index_price,
-          oracle_price: oracle_price,
-          price_change_24h: price_change_24h,
-          volume_24h: volume_24h,
-          trades_24h: trades_24h,
-          open_interest: open_interest,
-          type: md["type"],
-          asset_resolution: asset_resolution,
-          as_of: ndt
-        })
-
-      # IO.puts("#{inspect(result)}\n")
+      Postgrex.query(
+        pid,
+        "INSERT INTO dydx (asset_pair, base_asset, quote_asset, index_price, oracle_price, price_change_24h, volume_24h, trades_24h, open_interest, asset_resolution, as_of) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+        [
+          m,
+          md["baseAsset"],
+          md["quoteAsset"],
+          index_price,
+          oracle_price,
+          price_change_24h,
+          volume_24h,
+          trades_24h,
+          open_interest,
+          asset_resolution,
+          ndt
+        ]
+      )
     end
 
     Enum.each(markets(), &pp_mkt.(&1))
+    Process.exit(pid, :shutdown)
   end
 
   def loop_markets() do
@@ -120,14 +123,46 @@ defmodule TLDYDX do
     end)
   end
 
-  def get_dydx() do
-    {:ok, conn} = Mongo.start_link(url: "mongodb://localhost:27017/tradellama")
-    result = Mongo.find(conn, "dydx", %{})
-    #    IO.puts("#{inspect(result)}\n")
+  # def get_dydx() do
+  #   {:ok, conn} = Mongo.start_link(url: "mongodb://localhost:27017/tradellama")
+  #   result = Mongo.find(conn, "dydx", %{})
+  #   #    IO.puts("#{inspect(result)}\n")
 
-    result
-    |> Enum.to_list()
-    |> IO.inspect()
+  #   result
+  #   |> Enum.to_list()
+  #   |> IO.inspect()
+  # end
+
+  def build_database() do
+    {:ok, pid} =
+      Postgrex.start_link(
+        hostname: "localhost",
+        username: "postgres",
+        password: "Z3tonium",
+        database: "tradellama"
+      )
+
+    query =
+      Postgrex.prepare!(
+        pid,
+        "",
+        "CREATE TABLE dydx (id serial, asset_pair text, base_asset text, quote_asset text, index_price float, oracle_price float, price_change_24h float, volume_24h float, trades_24h float, open_interest float, asset_resolution float, as_of timestamptz)"
+      )
+
+    Postgrex.execute(pid, query, [])
+  end
+
+  def clean_database() do
+    {:ok, pid} =
+      Postgrex.start_link(
+        hostname: "localhost",
+        username: "postgres",
+        password: "Z3tonium",
+        database: "tradellama"
+      )
+
+    query = Postgrex.prepare!(pid, "", "DROP TABLE dydx")
+    Postgrex.execute(pid, query, [])
   end
 
   def orderbook_markets() do
