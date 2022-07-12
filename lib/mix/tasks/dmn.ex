@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Dmn do
 
   @impl Mix.Task
 
-  def run(args) do
+  def run(_args) do
     TLDYDX.loop_markets()
     # Mix.shell().info(Enum.join(args, " "))
   end
