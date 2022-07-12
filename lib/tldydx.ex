@@ -120,13 +120,23 @@ defmodule TLDYDX do
     case Postgrex.prepare_execute(
            pid,
            "",
-           "SELECT index_price FROM dydx WHERE asset_pair like $1 order by as_of",
+           "SELECT index_price, oracle_price, asset_pair, as_of FROM dydx WHERE asset_pair like $1 order by as_of",
            [
              "%#{asset_pair}%"
            ]
          ) do
       {:ok, _qry, res} ->
-        IO.puts("ok" <> " " <> "#{inspect(res)}")
+        IO.puts("ok" <> " " <> "#{inspect(res.rows)}")
+
+        pp_row = fn row ->
+          IO.puts("#{inspect(row)}")
+        end
+
+        Enum.each(res.rows, &pp_row.(&1))
+        index_prices = Enum.map(res.rows, &Enum.at(&1, 0))
+        Enum.each(index_prices, fn ip -> IO.puts(ip) end)
+        stats_map = Statistex.statistics(index_prices)
+        IO.puts("#{inspect(stats_map)}")
 
       {:error, %Postgrex.Error{}} ->
         IO.puts("end")

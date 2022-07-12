@@ -61,7 +61,7 @@ mix compile
 
 There is a task, Dmn, so you can run  
 
-nohup mix Dmn &
+nohup mix Dmn --looper &
 
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
