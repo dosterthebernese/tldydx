@@ -108,35 +108,79 @@ defmodule TLDYDX do
     Process.exit(pid, :shutdown)
   end
 
-  def get_dydx(asset_pair) do
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+  defp get_dydx_range(pid, asset_pair, gtedate, ltdate) do
+    IO.puts(asset_pair <> " " <> inspect(gtedate) <> " " <> inspect(ltdate))
 
     case Postgrex.prepare_execute(
            pid,
            "",
-           "SELECT index_price, oracle_price, asset_pair, as_of FROM dydx WHERE asset_pair like $1 order by as_of",
+           "SELECT index_price, oracle_price, asset_pair, as_of FROM dydx WHERE asset_pair like $1 and as_of >= $2 and as_of < $3 order by as_of asc",
            [
-             "%#{asset_pair}%"
+             "%#{asset_pair}%",
+             gtedate,
+             ltdate
            ]
          ) do
       {:ok, _qry, res} ->
-        IO.puts("ok" <> " " <> "#{inspect(res.rows)}")
-
-        pp_row = fn row ->
-          IO.puts("#{inspect(row)}")
-        end
-
-        Enum.each(res.rows, &pp_row.(&1))
-        index_prices = Enum.map(res.rows, &Enum.at(&1, 0))
-        Enum.each(index_prices, fn ip -> IO.puts(ip) end)
-        stats_map = Statistex.statistics(index_prices)
-        IO.puts("#{inspect(stats_map)}")
+        res
 
       {:error, %Postgrex.Error{}} ->
-        IO.puts("end")
+        IO.puts("Error!")
+        Process.exit(pid, :shutdown)
+    end
+  end
+
+  def get_dydx(asset_pair, {:ok, ltdate} \\ DateTime.now("Etc/UTC")) do
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    gtedate = DateTime.add(ltdate, -3600, :second)
+    IO.puts(gtedate)
+    IO.puts(ltdate)
+    quotes = get_dydx_range(pid, asset_pair, gtedate, ltdate)
+    IO.puts("number of rows: " <> " " <> "#{inspect(quotes.num_rows)}")
+
+    pp_row = fn row ->
+      inner_ltdate = Enum.at(row, 3)
+      inner_gtedate = DateTime.add(inner_ltdate, -3600, :second)
+      inner_quotes = get_dydx_range(pid, asset_pair, inner_gtedate, inner_ltdate)
+      index_prices = Enum.map(inner_quotes.rows, &Enum.at(&1, 0))
+
+      if inner_quotes.num_rows > 0 do
+        stats_map = Statistex.statistics(index_prices)
+        IO.puts("#{inspect(stats_map)}")
+      end
     end
 
+    Enum.each(quotes.rows, &pp_row.(&1))
+
     Process.exit(pid, :shutdown)
+
+    # case Postgrex.prepare_execute(
+    #        pid,
+    #        "",
+    #        "SELECT index_price, oracle_price, asset_pair, as_of FROM dydx WHERE asset_pair like $1 and as_of < $2 order by as_of asc",
+    #        [
+    #          "%#{asset_pair}%",
+    #          as_of
+    #        ]
+    #      ) do
+    #   {:ok, _qry, res} ->
+    #     IO.puts("ok" <> " " <> "#{inspect(res.num_rows)}")
+
+    #     pp_row = fn row ->
+    #       get_dydx_recursive(pid, asset_pair, {:ok, Enum.at(row, 3)})
+    #     end
+
+    #     Enum.each(res.rows, &pp_row.(&1))
+    #     index_prices = Enum.map(res.rows, &Enum.at(&1, 0))
+    #     # Enum.each(index_prices, fn ip -> IO.puts(ip) end)
+    #     if res.num_rows > 0 do
+    #       stats_map = Statistex.statistics(index_prices)
+    #       IO.puts("#{inspect(stats_map)}")
+    #     end
+
+    #   {:error, %Postgrex.Error{}} ->
+    #     IO.puts("end")
+    # end
   end
 
   def build_database() do
