@@ -15,7 +15,6 @@ defmodule TLDYDX do
 
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
   @orderbook URI.parse("https://api.dydx.exchange/v3/orderbook")
-  @an_absurdly_high_number 10_000_000_000
 
   def hello do
     :world
@@ -109,20 +108,6 @@ defmodule TLDYDX do
     Process.exit(pid, :shutdown)
   end
 
-  def loop_markets() do
-    Stream.iterate(0, &(&1 + 1))
-    |> Enum.reduce_while(0, fn i, acc ->
-      if i > @an_absurdly_high_number do
-        {:halt, acc}
-      else
-        IO.puts(Integer.to_string(i) <> " " <> Integer.to_string(acc))
-        Process.sleep(1000)
-        Task.start(fn -> snapshot_markets() end)
-        {:cont, acc + 1}
-      end
-    end)
-  end
-
   def get_dydx(asset_pair) do
     {:ok, pid} =
       Postgrex.start_link(
@@ -140,7 +125,7 @@ defmodule TLDYDX do
              "%#{asset_pair}%"
            ]
          ) do
-      {:ok, qry, res} ->
+      {:ok, _qry, res} ->
         IO.puts("ok" <> " " <> "#{inspect(res)}")
 
       {:error, %Postgrex.Error{}} ->
@@ -149,16 +134,6 @@ defmodule TLDYDX do
 
     Process.exit(pid, :shutdown)
   end
-
-  # def get_dydx() do
-  #   {:ok, conn} = Mongo.start_link(url: "mongodb://localhost:27017/tradellama")
-  #   result = Mongo.find(conn, "dydx", %{})
-  #   #    IO.puts("#{inspect(result)}\n")
-
-  #   result
-  #   |> Enum.to_list()
-  #   |> IO.inspect()
-  # end
 
   def build_database() do
     {:ok, pid} =
