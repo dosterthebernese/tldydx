@@ -13,6 +13,11 @@ defmodule TLDYDX do
 
   """
 
+  @seconds24h 86400
+  @seconds12h 43200
+  @seconds6h 21600
+  @seconds3h 10800
+  @seconds1h 3600
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
   @orderbook URI.parse("https://api.dydx.exchange/v3/orderbook")
   @pgcreds [
@@ -132,7 +137,7 @@ defmodule TLDYDX do
 
   def get_dydx(asset_pair, {:ok, ltdate} \\ DateTime.now("Etc/UTC")) do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
-    gtedate = DateTime.add(ltdate, -3600, :second)
+    gtedate = DateTime.add(ltdate, -@seconds24h, :second)
     IO.puts(gtedate)
     IO.puts(ltdate)
     quotes = get_dydx_range(pid, asset_pair, gtedate, ltdate)
@@ -140,13 +145,19 @@ defmodule TLDYDX do
 
     pp_row = fn row ->
       inner_ltdate = Enum.at(row, 3)
-      inner_gtedate = DateTime.add(inner_ltdate, -3600, :second)
+      inner_gtedate = DateTime.add(inner_ltdate, -@seconds3h, :second)
       inner_quotes = get_dydx_range(pid, asset_pair, inner_gtedate, inner_ltdate)
       index_prices = Enum.map(inner_quotes.rows, &Enum.at(&1, 0))
 
-      if inner_quotes.num_rows > 0 do
+      if inner_quotes.num_rows >= @seconds1h do
         stats_map = Statistex.statistics(index_prices)
         IO.puts("#{inspect(stats_map)}")
+      else
+        IO.puts(
+          "Not enough predecessor trades in the database: " <>
+            Integer.to_string(inner_quotes.num_rows) <>
+            " rows.  Likely related to startup or a crash."
+        )
       end
     end
 

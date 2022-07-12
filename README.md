@@ -63,6 +63,14 @@ There is a task, Dmn, so you can run
 
 nohup mix Dmn --looper &
 
+### To dump from prod for analytics local  
+
+sudo -u postgres pg_dump -d tradellama -t dydx > dydx.sql  
+
+scp -i "newllamaataws.pem" ubuntu@ec2-54-165-222-209.compute-1.amazonaws.com:/home/ubuntu/dumps/dydx.sql .  
+
+sudo -u postgres psql -d tradellama -f dydx.sql  
+
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 by adding `tldydx` to your list of dependencies in `mix.exs`:
