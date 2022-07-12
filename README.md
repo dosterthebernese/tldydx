@@ -21,6 +21,10 @@ I ended up using postgres
 
 You need elixir  
 
+note, had to force this at aws ubuntu, ubuntu 22.04, and still didn't work, so make aws 20.04 - for 1.13, newest ubuntu maps to 1.12  
+
+lsb_release -a    
+
 https://elixir-lang.org/install.html#gnulinux  
 
 wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb && sudo dpkg -i erlang-solutions_2.0_all.deb  
@@ -34,6 +38,8 @@ sudo apt-get install elixir
 git clone https://github.com/dosterthebernese/tldydx  
 
 You need to run  
+
+first time you will be prompted to install Hex, say yes, same rebar3
 
 mix deps.get  
 
