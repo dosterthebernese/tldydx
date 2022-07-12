@@ -15,6 +15,12 @@ defmodule TLDYDX do
 
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
   @orderbook URI.parse("https://api.dydx.exchange/v3/orderbook")
+  @pgcreds [
+    hostname: "localhost",
+    username: "postgres",
+    password: "Z3tonium",
+    database: "tradellama"
+  ]
 
   def hello do
     :world
@@ -63,13 +69,7 @@ defmodule TLDYDX do
   end
 
   def snapshot_markets() do
-    {:ok, pid} =
-      Postgrex.start_link(
-        hostname: "localhost",
-        username: "postgres",
-        password: "Z3tonium",
-        database: "tradellama"
-      )
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
 
     pp_mkt = fn mkt ->
       {m, md} = mkt
@@ -109,13 +109,7 @@ defmodule TLDYDX do
   end
 
   def get_dydx(asset_pair) do
-    {:ok, pid} =
-      Postgrex.start_link(
-        hostname: "localhost",
-        username: "postgres",
-        password: "Z3tonium",
-        database: "tradellama"
-      )
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
 
     case Postgrex.prepare_execute(
            pid,
@@ -146,13 +140,7 @@ defmodule TLDYDX do
   end
 
   def build_database() do
-    {:ok, pid} =
-      Postgrex.start_link(
-        hostname: "localhost",
-        username: "postgres",
-        password: "Z3tonium",
-        database: "tradellama"
-      )
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
 
     query =
       Postgrex.prepare!(
@@ -165,13 +153,7 @@ defmodule TLDYDX do
   end
 
   def clean_database() do
-    {:ok, pid} =
-      Postgrex.start_link(
-        hostname: "localhost",
-        username: "postgres",
-        password: "Z3tonium",
-        database: "tradellama"
-      )
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
 
     query = Postgrex.prepare!(pid, "", "DROP TABLE dydx")
     Postgrex.execute(pid, query, [])
