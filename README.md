@@ -57,6 +57,12 @@ mix deps.get
 
 mix compile  
 
+### To run on production  
+
+There is a task, Dmn, so you can run  
+
+nohup mix Dmn &
+
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 by adding `tldydx` to your list of dependencies in `mix.exs`:
