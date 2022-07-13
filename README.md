@@ -49,6 +49,20 @@ iex -S mix
 
 TLDYDX.markets()  
 
+### below are commands you likely run once, or a lot, depending on use case 
+
+TLDYDX.clean_derivative_database() not needed on prod once up
+
+TLDYDX.clean_database() not needed on prod once up
+
+TLDYDX.build_database() not needed if dumping from prod
+
+TLDYDX.optimize_database() needed local if you loaded from file, you need that primary key
+
+TLDYDX.build_derivative_database() need to tighten up
+
+
+
 mix.deps.update --all  
 
 mix.deps.clean --all  
