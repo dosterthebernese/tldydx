@@ -17,7 +17,9 @@ defmodule TLDYDX do
   @seconds12h 43200
   @seconds6h 21600
   @seconds3h 10800
+  @seconds2h 7200
   @seconds1h 3600
+  @margin_of_error 100
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
   @orderbook URI.parse("https://api.dydx.exchange/v3/orderbook")
   @pgcreds [
@@ -119,7 +121,7 @@ defmodule TLDYDX do
     case Postgrex.prepare_execute(
            pid,
            "",
-           "SELECT index_price, oracle_price, asset_pair, as_of FROM dydx WHERE asset_pair like $1 and as_of >= $2 and as_of < $3 order by as_of asc",
+           "SELECT id, index_price, oracle_price, asset_pair, as_of FROM dydx WHERE asset_pair like $1 and as_of >= $2 and as_of < $3 order by as_of asc",
            [
              "%#{asset_pair}%",
              gtedate,
@@ -144,19 +146,40 @@ defmodule TLDYDX do
     IO.puts("number of rows: " <> " " <> "#{inspect(quotes.num_rows)}")
 
     pp_row = fn row ->
-      inner_ltdate = Enum.at(row, 3)
-      inner_gtedate = DateTime.add(inner_ltdate, -@seconds3h, :second)
+      parent_id = Enum.at(row, 0)
+      inner_ltdate = Enum.at(row, 4)
+      inner_gtedate = DateTime.add(inner_ltdate, -@seconds2h, :second)
       inner_quotes = get_dydx_range(pid, asset_pair, inner_gtedate, inner_ltdate)
-      index_prices = Enum.map(inner_quotes.rows, &Enum.at(&1, 0))
 
-      if inner_quotes.num_rows >= @seconds1h do
-        stats_map = Statistex.statistics(index_prices)
-        IO.puts("#{inspect(stats_map)}")
+      if inner_quotes.num_rows >= @seconds2h - @margin_of_error &&
+           inner_quotes.num_rows <= @seconds2h + @margin_of_error do
+        index_prices = Enum.map(inner_quotes.rows, &Enum.at(&1, 1))
+        index_prices_last_hour = Enum.slice(index_prices, @seconds1h, @seconds2h)
+        stats_map2h = Statistex.statistics(index_prices)
+        stats_map1h = Statistex.statistics(index_prices_last_hour)
+        IO.puts("\ntwo hours prior: #{inspect(stats_map2h)}")
+        IO.puts("\n one hour prior: #{inspect(stats_map1h)}\n\n")
+
+        Postgrex.query(
+          pid,
+          "INSERT INTO dydxd (dydx_id, trailing_2h_average, trailing_2h_standard_deviation, trailing_2h_variance, trailing_2h_sample_size, trailing_1h_average, trailing_1h_standard_deviation, trailing_1h_variance, trailing_1h_sample_size) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+          [
+            parent_id,
+            stats_map2h.average,
+            stats_map2h.standard_deviation,
+            stats_map2h.variance,
+            stats_map2h.sample_size,
+            stats_map1h.average,
+            stats_map1h.standard_deviation,
+            stats_map1h.variance,
+            stats_map1h.sample_size
+          ]
+        )
       else
         IO.puts(
           "Not enough predecessor trades in the database: " <>
             Integer.to_string(inner_quotes.num_rows) <>
-            " rows.  Likely related to startup or a crash."
+            " rows.  Likely related to startup or a crash.  Note, this allows for +- 100 margin of error (seconds off, gap in http return in db)"
         )
       end
     end
@@ -164,34 +187,19 @@ defmodule TLDYDX do
     Enum.each(quotes.rows, &pp_row.(&1))
 
     Process.exit(pid, :shutdown)
+  end
 
-    # case Postgrex.prepare_execute(
-    #        pid,
-    #        "",
-    #        "SELECT index_price, oracle_price, asset_pair, as_of FROM dydx WHERE asset_pair like $1 and as_of < $2 order by as_of asc",
-    #        [
-    #          "%#{asset_pair}%",
-    #          as_of
-    #        ]
-    #      ) do
-    #   {:ok, _qry, res} ->
-    #     IO.puts("ok" <> " " <> "#{inspect(res.num_rows)}")
+  def build_derivative_database() do
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
 
-    #     pp_row = fn row ->
-    #       get_dydx_recursive(pid, asset_pair, {:ok, Enum.at(row, 3)})
-    #     end
+    query =
+      Postgrex.prepare!(
+        pid,
+        "",
+        "CREATE TABLE dydxd (dydx_id int references dydx(id), trailing_2h_average float, trailing_2h_standard_deviation float, trailing_2h_variance float, trailing_2h_sample_size integer, trailing_1h_average float, trailing_1h_standard_deviation float, trailing_1h_variance float, trailing_1h_sample_size integer)"
+      )
 
-    #     Enum.each(res.rows, &pp_row.(&1))
-    #     index_prices = Enum.map(res.rows, &Enum.at(&1, 0))
-    #     # Enum.each(index_prices, fn ip -> IO.puts(ip) end)
-    #     if res.num_rows > 0 do
-    #       stats_map = Statistex.statistics(index_prices)
-    #       IO.puts("#{inspect(stats_map)}")
-    #     end
-
-    #   {:error, %Postgrex.Error{}} ->
-    #     IO.puts("end")
-    # end
+    Postgrex.execute(pid, query, [])
   end
 
   def build_database() do
@@ -201,7 +209,7 @@ defmodule TLDYDX do
       Postgrex.prepare!(
         pid,
         "",
-        "CREATE TABLE dydx (id serial, asset_pair text, base_asset text, quote_asset text, index_price float, oracle_price float, price_change_24h float, volume_24h float, trades_24h float, open_interest float, asset_resolution float, as_of timestamptz)"
+        "CREATE TABLE dydx (id serial primary key, asset_pair text, base_asset text, quote_asset text, index_price float, oracle_price float, price_change_24h float, volume_24h float, trades_24h float, open_interest float, asset_resolution float, as_of timestamptz)"
       )
 
     Postgrex.execute(pid, query, [])
@@ -211,6 +219,26 @@ defmodule TLDYDX do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
 
     query = Postgrex.prepare!(pid, "", "DROP TABLE dydx")
+    Postgrex.execute(pid, query, [])
+  end
+
+  def clean_derivative_database() do
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
+
+    query = Postgrex.prepare!(pid, "", "DROP TABLE dydxd")
+    Postgrex.execute(pid, query, [])
+  end
+
+  def optimize_database() do
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
+
+    query =
+      Postgrex.prepare!(
+        pid,
+        "",
+        "create unique index asset_pair_as_of_idx on dydx (asset_pair, as_of)"
+      )
+
     Postgrex.execute(pid, query, [])
   end
 
