@@ -272,14 +272,23 @@ defmodule TLDYDX do
   def optimize_database() do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
 
-    query =
+    query1 =
       Postgrex.prepare!(
         pid,
         "",
         "create unique index asset_pair_as_of_idx on dydx (asset_pair, as_of)"
       )
 
-    Postgrex.execute(pid, query, [])
+    Postgrex.execute(pid, query1, [])
+
+    query2 =
+      Postgrex.prepare!(
+        pid,
+        "",
+        "create index as_of_idx on dydx (as_of)"
+      )
+
+    Postgrex.execute(pid, query2, [])
   end
 
   def orderbook_markets() do

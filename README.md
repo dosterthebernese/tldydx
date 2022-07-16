@@ -49,6 +49,12 @@ iex -S mix
 
 TLDYDX.markets()  
 
+a_day_we_know_processed = DateTime.new(~D[2022-07-14], ~T[11:59:59.000], "Etc/UTC")  
+
+TLDYDX.get_dydx() 
+
+TLDYDX.get_dydx(a_day_we_know_processed)  
+
 ### below are commands you likely run once, or a lot, depending on use case 
 
 TLDYDX.clean_derivative_database() not needed on prod once up
