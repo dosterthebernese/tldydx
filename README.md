@@ -4,7 +4,14 @@ This is an application suite for consuming data from DYDX public facing APIs.
 
 ## Installation
 
-https://ubuntu.com/server/docs/databases-postgresql  
+
+### Postgres
+#### Sourced:
+
+taken from: https://ubuntu.com/server/docs/databases-postgresql  
+
+
+#### Steps:  
 
 sudo apt install postgresql  
 
