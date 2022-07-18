@@ -35,11 +35,14 @@ defmodule Mix.Tasks.Dmn do
 
       {[cleaner: true], _, _} ->
         Application.ensure_all_started(:postgrex)
+        TLDYDX.clean_derivative_database()
         TLDYDX.clean_database()
 
       {[builder: true], _, _} ->
         Application.ensure_all_started(:postgrex)
         TLDYDX.build_database()
+        TLDYDX.optimize_database()
+        TLDYDX.build_derivative_database()
 
       _ ->
         IO.puts(
