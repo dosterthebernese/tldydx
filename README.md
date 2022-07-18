@@ -51,9 +51,16 @@ TLDYDX.markets()
 
 a_day_we_know_processed = DateTime.new(~D[2022-07-14], ~T[11:59:59.000], "Etc/UTC")  
 
-TLDYDX.get_dydx() 
+TLDYDX.get_dydx("BTC-USD") 
 
-TLDYDX.get_dydx(a_day_we_know_processed)  
+TLDYDX.get_dydx("BTC-USD", a_day_we_know_processed)  
+
+### for a quick demo, use min (10 min and 5 min)  
+
+TLDYDX.get_dydx_min("BTC-USD")  
+
+note that you'll need to wait 20 mins, before data (plus minus 10 etc) will start to generate results  
+
 
 ### below are commands you likely run once, or a lot, depending on use case 
 

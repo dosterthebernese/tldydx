@@ -20,6 +20,7 @@ defmodule TLDYDX do
   @seconds2h 7200
   @seconds1h 3600
   @seconds10min 600
+  @seconds5min 300
   @seconds30min 1800
   @margin_of_error 100
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
@@ -229,17 +230,116 @@ defmodule TLDYDX do
     Process.exit(pid, :shutdown)
   end
 
+  def get_dydx_min(asset_pair, {:ok, ltdate} \\ DateTime.now("Etc/UTC")) do
+    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    gtedate = DateTime.add(ltdate, -@seconds24h, :second)
+    IO.puts(gtedate)
+    IO.puts(ltdate)
+    quotes = get_dydx_range(pid, asset_pair, gtedate, ltdate)
+    IO.puts("number of rows: " <> " " <> "#{inspect(quotes.num_rows)}")
+
+    pp_row = fn row ->
+      parent_id = Enum.at(row, 0)
+      parent_price = Enum.at(row, 1)
+      inner_ltdate = Enum.at(row, 4)
+      future_date5min = DateTime.add(inner_ltdate, @seconds5min, :second)
+      future_date10min = DateTime.add(inner_ltdate, @seconds10min, :second)
+      inner_gtedate = DateTime.add(inner_ltdate, -@seconds10min, :second)
+      inner_quotes = get_dydx_range(pid, asset_pair, inner_gtedate, inner_ltdate)
+
+      future_quotes5m =
+        get_dydx_range(
+          pid,
+          asset_pair,
+          future_date5min,
+          DateTime.add(future_date5min, 5, :second)
+        )
+
+      future_quotes10m =
+        get_dydx_range(
+          pid,
+          asset_pair,
+          future_date10min,
+          DateTime.add(future_date10min, 5, :second)
+        )
+
+      if inner_quotes.num_rows >= @seconds10min - @margin_of_error &&
+           inner_quotes.num_rows <= @seconds10min + @margin_of_error &&
+           future_quotes10m.num_rows >= 1 do
+        index_prices = Enum.map(inner_quotes.rows, &Enum.at(&1, 1))
+        index_prices_last_five_mins = Enum.slice(index_prices, @seconds5min, @seconds10min)
+        stats_map10min = Statistex.statistics(index_prices)
+        stats_map5min = Statistex.statistics(index_prices_last_five_mins)
+
+        future_5min_price = Enum.at(Enum.at(future_quotes5m.rows, 0), 1)
+        future_10min_price = Enum.at(Enum.at(future_quotes10m.rows, 0), 1)
+
+        delta_5min = (future_5min_price - parent_price) / parent_price * 100.0
+        delta_10min = (future_10min_price - parent_price) / parent_price * 100.0
+
+        # IO.puts("\ntwo hours prior: #{inspect(stats_map2h)}")
+        # IO.puts("\n one hour prior: #{inspect(stats_map1h)}\n\n")
+        # IO.puts("\n   10 min alist: #{inspect(future_quotes10m)}\n\n")
+        # IO.puts("\n   10 min after: #{inspect(future_10min_price)}\n\n")
+        # IO.puts("\n   10 min delta: #{inspect(delta_10min)}\n\n")
+        # IO.puts("\n   30 min alist: #{inspect(future_quotes30m)}\n\n")
+        # IO.puts("\n   30 min after: #{inspect(future_30min_price)}\n\n")
+        # IO.puts("\n   30 min delta: #{inspect(delta_30min)}\n\n")
+
+        Postgrex.query(
+          pid,
+          "INSERT INTO dydxdmin (dydx_id, trailing_10min_average, trailing_10min_standard_deviation, trailing_10min_variance, trailing_10min_sample_size, trailing_5min_average, trailing_5min_standard_deviation, trailing_5min_variance, trailing_5min_sample_size, future_5min_price, future_10min_price, delta_5min, delta_10min) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+          [
+            parent_id,
+            stats_map10min.average,
+            stats_map10min.standard_deviation,
+            stats_map10min.variance,
+            stats_map10min.sample_size,
+            stats_map5min.average,
+            stats_map5min.standard_deviation,
+            stats_map5min.variance,
+            stats_map5min.sample_size,
+            future_5min_price,
+            future_10min_price,
+            delta_5min,
+            delta_10min
+          ]
+        )
+      else
+        IO.puts(
+          "Not enough predecessor trades in the database, or future quotes: " <>
+            Integer.to_string(inner_quotes.num_rows) <>
+            Integer.to_string(future_quotes10m.num_rows) <>
+            " in prior and forward respectively.  Likely related to startup or a crash.  Note, this allows for +- 100 margin of error (seconds off, gap in http return in db)"
+        )
+      end
+    end
+
+    Enum.each(quotes.rows, &pp_row.(&1))
+
+    Process.exit(pid, :shutdown)
+  end
+
   def build_derivative_database() do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
 
-    query =
+    query1 =
       Postgrex.prepare!(
         pid,
         "",
         "CREATE TABLE dydxd (dydx_id int references dydx(id), trailing_2h_average float, trailing_2h_standard_deviation float, trailing_2h_variance float, trailing_2h_sample_size integer, trailing_1h_average float, trailing_1h_standard_deviation float, trailing_1h_variance float, trailing_1h_sample_size integer, future_10min_price float, future_30min_price float, delta_10min float, delta_30min float)"
       )
 
-    Postgrex.execute(pid, query, [])
+    Postgrex.execute(pid, query1, [])
+
+    query2 =
+      Postgrex.prepare!(
+        pid,
+        "",
+        "CREATE TABLE dydxdmin (dydx_id int references dydx(id), trailing_10min_average float, trailing_10min_standard_deviation float, trailing_10min_variance float, trailing_10min_sample_size integer, trailing_5min_average float, trailing_5min_standard_deviation float, trailing_5min_variance float, trailing_5min_sample_size integer, future_5min_price float, future_10min_price float, delta_5min float, delta_10min float)"
+      )
+
+    Postgrex.execute(pid, query2, [])
   end
 
   def build_database() do
@@ -265,8 +365,10 @@ defmodule TLDYDX do
   def clean_derivative_database() do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
 
-    query = Postgrex.prepare!(pid, "", "DROP TABLE dydxd")
-    Postgrex.execute(pid, query, [])
+    query1 = Postgrex.prepare!(pid, "", "DROP TABLE dydxd")
+    Postgrex.execute(pid, query1, [])
+    query2 = Postgrex.prepare!(pid, "", "DROP TABLE dydxdmin")
+    Postgrex.execute(pid, query2, [])
   end
 
   def optimize_database() do
