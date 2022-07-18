@@ -29,19 +29,18 @@ create database tradellama;
 ALTER USER postgres with encrypted password 'Z3tonium';  
 
 
-### Postgres
-#### Sourced:
+### Elixir
 
 note, had to force this at aws ubuntu, ubuntu 22.04, and still didn't work, so make aws 20.04 - for 1.13, newest ubuntu maps to 1.12  
 
 lsb_release -a    
 
-https://elixir-lang.org/install.html#gnulinux  
+#### Sourced:
 
+https://elixir-lang.org/install.html#gnulinux  
 
 #### Steps:  
 #### Ubuntu cmd line:  
-
 
 wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb && sudo dpkg -i erlang-solutions_2.0_all.deb  
 
