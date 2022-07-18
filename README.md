@@ -1,6 +1,6 @@
 # TLDYDX
 
-This is an application suite for consuming data from DYDX public facing APIs.  
+This is an application suite for consuming data from DYDX public facing APIs.  You will install Postgres, install Elixir, and pull this repo.  You will compile the repo, and run cleaner, builder, looper.  This will build a data set.  If doing a min (demo) run, wait 30 mins, and then you can use iex -S mix to invoke a quick terminal, to migrate some processed data.
 
 ## Installation
 
