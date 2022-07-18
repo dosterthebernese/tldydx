@@ -13,26 +13,35 @@ taken from: https://ubuntu.com/server/docs/databases-postgresql
 
 #### Steps:  
 
+#### Ubuntu cmd line:  
+
 sudo apt install postgresql  
 
 sudo -u postgres psql  
 
 sudo -u postgres psql tradellama
 
+
+#### Inside Psql:  
+
 create database tradellama;  
 
 ALTER USER postgres with encrypted password 'Z3tonium';  
 
-I ended up using postgres  
 
-
-You need elixir  
+### Postgres
+#### Sourced:
 
 note, had to force this at aws ubuntu, ubuntu 22.04, and still didn't work, so make aws 20.04 - for 1.13, newest ubuntu maps to 1.12  
 
 lsb_release -a    
 
 https://elixir-lang.org/install.html#gnulinux  
+
+
+#### Steps:  
+#### Ubuntu cmd line:  
+
 
 wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb && sudo dpkg -i erlang-solutions_2.0_all.deb  
 
@@ -42,21 +51,48 @@ sudo apt-get install esl-erlang
 
 sudo apt-get install elixir  
 
+
+### This Repo First Time
+#### Ubuntu cmd line:  
+
+
 git clone https://github.com/dosterthebernese/tldydx  
 
-You need to run  
+cd tldydx  
 
-first time you will be prompted to install Hex, say yes, same rebar3
+#### first time you will be prompted to install Hex, say yes, and same with rebar3
 
 mix deps.get  
 
 mix compile  
 
+### To run on production  
+
+mid Dmn --cleaner  
+
+mix Dmn --builder  
+
+mix Dmn --looper
+
+nohup mix Dmn --looper &
+
+#### useful to know
+
+mix.deps.update --all  
+
+mix.deps.clean --all  
+
+mix deps.get  
+
+mix compile  
+
+### IEX Usage (when you know what you're doing and want to play)
+
 iex -S mix  
 
 TLDYDX.markets()  
 
-a_day_we_know_processed = DateTime.new(~D[2022-07-14], ~T[11:59:59.000], "Etc/UTC")  
+a_day_we_know_processed = DateTime.new(~D[2022-07-14], ~T[23:59:59.000], "Etc/UTC")  
 
 TLDYDX.get_dydx("BTC-USD") 
 
@@ -68,34 +104,6 @@ TLDYDX.get_dydx_min("BTC-USD")
 
 note that you'll need to wait 20 mins, before data (plus minus 10 etc) will start to generate results  
 
-
-### below are commands you likely run once, or a lot, depending on use case 
-
-TLDYDX.clean_derivative_database() not needed on prod once up
-
-TLDYDX.clean_database() not needed on prod once up
-
-TLDYDX.build_database() not needed if dumping from prod
-
-TLDYDX.optimize_database() needed local if you loaded from file, you need that primary key
-
-TLDYDX.build_derivative_database() need to tighten up
-
-
-
-mix.deps.update --all  
-
-mix.deps.clean --all  
-
-mix deps.get  
-
-mix compile  
-
-### To run on production  
-
-There is a task, Dmn, so you can run  
-
-nohup mix Dmn --looper &
 
 ### To dump from prod for analytics local  
 
