@@ -19,14 +19,17 @@ sudo apt install postgresql
 
 sudo -u postgres psql  
 
-sudo -u postgres psql tradellama
-
 
 #### Inside Psql:  
 
 create database tradellama;  
 
 ALTER USER postgres with encrypted password 'Z3tonium';  
+
+#### validate
+
+sudo -u postgres psql tradellama
+
 
 
 ### Elixir
