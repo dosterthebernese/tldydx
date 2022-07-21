@@ -233,10 +233,27 @@ defmodule TLDYDX do
   def get_dydx_min(asset_pair, {:ok, ltdate} \\ DateTime.now("Etc/UTC")) do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
     gtedate = DateTime.add(ltdate, -@seconds24h, :second)
-    IO.puts(gtedate)
-    IO.puts(ltdate)
+    subservient_ltdate = DateTime.add(ltdate, @seconds30min, :second)
+    subservient_gtedate = DateTime.add(gtedate, -@seconds2h, :second)
+
+    IO.puts("  The bottom of the range to iterate is:  #{gtedate}")
+    IO.puts("     The top of the range to iterate is:  #{ltdate}")
+    IO.puts("The bottom of the lookback for stats is:  #{subservient_gtedate}")
+    IO.puts("  The top of the lookahead for stats is:  #{subservient_ltdate}")
+
+    # you are going to iterate this
     quotes = get_dydx_range(pid, asset_pair, gtedate, ltdate)
-    IO.puts("number of rows: " <> " " <> "#{inspect(quotes.num_rows)}")
+    IO.puts("            number of rows: " <> " " <> "#{inspect(quotes.num_rows)}")
+
+    # rather than hit the database per each quote above, get the widest range you need, and then "walk" the appropriate ranges.
+    subservient_quotes = get_dydx_range(pid, asset_pair, subservient_gtedate, subservient_ltdate)
+    IO.puts("subservient number of rows: " <> " " <> "#{inspect(subservient_quotes.num_rows)}")
+
+    if subservient_quotes.num_rows <
+         quotes.num_rows + @seconds30min + @seconds2h - @margin_of_error do
+      IO.puts("Not enough data yet")
+      raise "Oh no!"
+    end
 
     pp_row = fn row ->
       parent_id = Enum.at(row, 0)
