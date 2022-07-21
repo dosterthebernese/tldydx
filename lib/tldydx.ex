@@ -186,10 +186,15 @@ defmodule TLDYDX do
       # IO.inspect(prior_five_prices)
       # IO.inspect(following_five_prices)
 
-      trailing_rows_2h = Enum.slice(subservient_quotes.rows, index - @seconds2h, @seconds2h)
-      trailing_rows_1h = Enum.slice(subservient_quotes.rows, index - @seconds1h, @seconds1h)
-      future_10min_price = Enum.at(Enum.at(subservient_quotes.rows, index + @seconds10min), 1)
-      future_30min_price = Enum.at(Enum.at(subservient_quotes.rows, index + @seconds30min), 1)
+      # its an index from the iterated rows, but you want to start at the backend of the subservient rows
+      trailing_rows_2h = Enum.slice(subservient_quotes.rows, index, @seconds2h)
+      trailing_rows_1h = Enum.slice(subservient_quotes.rows, index + @seconds1h, @seconds1h)
+
+      future_10min_price =
+        Enum.at(Enum.at(subservient_quotes.rows, index + @seconds2h + @seconds10min), 1)
+
+      future_30min_price =
+        Enum.at(Enum.at(subservient_quotes.rows, index + @seconds2h + @seconds30min), 1)
 
       index_prices_last_2_hours = Enum.map(trailing_rows_2h, &Enum.at(&1, 1))
       index_prices_last_1_hour = Enum.map(trailing_rows_1h, &Enum.at(&1, 1))
@@ -271,10 +276,14 @@ defmodule TLDYDX do
       # IO.inspect(prior_five_prices)
       # IO.inspect(following_five_prices)
 
-      trailing_rows_10 = Enum.slice(subservient_quotes.rows, index - @seconds10min, @seconds10min)
-      trailing_rows_5 = Enum.slice(subservient_quotes.rows, index - @seconds5min, @seconds5min)
-      future_5min_price = Enum.at(Enum.at(subservient_quotes.rows, index + @seconds5min), 1)
-      future_10min_price = Enum.at(Enum.at(subservient_quotes.rows, index + @seconds10min), 1)
+      trailing_rows_10 = Enum.slice(subservient_quotes.rows, index, @seconds10min)
+      trailing_rows_5 = Enum.slice(subservient_quotes.rows, index + @seconds5min, @seconds5min)
+
+      future_5min_price =
+        Enum.at(Enum.at(subservient_quotes.rows, index + @seconds10min + @seconds5min), 1)
+
+      future_10min_price =
+        Enum.at(Enum.at(subservient_quotes.rows, index + @seconds10min + @seconds10min), 1)
 
       index_prices_last_10_mins = Enum.map(trailing_rows_10, &Enum.at(&1, 1))
       index_prices_last_5_mins = Enum.map(trailing_rows_5, &Enum.at(&1, 1))
