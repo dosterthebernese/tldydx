@@ -140,92 +140,87 @@ defmodule TLDYDX do
     end
   end
 
+  # if you don't pass it a proper date, and default to now, it'll always error, as the future numbers are not in place.
   def get_dydx(asset_pair, {:ok, ltdate} \\ DateTime.now("Etc/UTC")) do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
+    ### go back from start 24 hours for your rows to iterate
     gtedate = DateTime.add(ltdate, -@seconds24h, :second)
-    IO.puts(gtedate)
-    IO.puts(ltdate)
+    ### for max, following 30 mins for data
+    subservient_ltdate = DateTime.add(ltdate, @seconds30min, :second)
+    ### for min, prior 2 hours for data
+    subservient_gtedate = DateTime.add(gtedate, -@seconds2h, :second)
+
+    IO.puts("  The bottom of the range to iterate is:  #{gtedate}")
+    IO.puts("     The top of the range to iterate is:  #{ltdate}")
+    IO.puts("The bottom of the lookback for stats is:  #{subservient_gtedate}")
+    IO.puts("  The top of the lookahead for stats is:  #{subservient_ltdate}")
+
+    # you are going to iterate this
     quotes = get_dydx_range(pid, asset_pair, gtedate, ltdate)
-    IO.puts("number of rows: " <> " " <> "#{inspect(quotes.num_rows)}")
+    IO.puts("            number of rows: " <> " " <> "#{inspect(quotes.num_rows)}")
 
-    pp_row = fn row ->
-      parent_id = Enum.at(row, 0)
-      parent_price = Enum.at(row, 1)
-      inner_ltdate = Enum.at(row, 4)
-      future_date10min = DateTime.add(inner_ltdate, @seconds10min, :second)
-      future_date30min = DateTime.add(inner_ltdate, @seconds30min, :second)
-      inner_gtedate = DateTime.add(inner_ltdate, -@seconds2h, :second)
-      inner_quotes = get_dydx_range(pid, asset_pair, inner_gtedate, inner_ltdate)
+    # rather than hit the database per each quote above, get the widest range you need, and then "walk" the appropriate ranges.
+    subservient_quotes = get_dydx_range(pid, asset_pair, subservient_gtedate, subservient_ltdate)
+    IO.puts("subservient number of rows: " <> " " <> "#{inspect(subservient_quotes.num_rows)}")
 
-      future_quotes10m =
-        get_dydx_range(
-          pid,
-          asset_pair,
-          future_date10min,
-          DateTime.add(future_date10min, 5, :second)
-        )
-
-      future_quotes30m =
-        get_dydx_range(
-          pid,
-          asset_pair,
-          future_date30min,
-          DateTime.add(future_date30min, 5, :second)
-        )
-
-      if inner_quotes.num_rows >= @seconds2h - @margin_of_error &&
-           inner_quotes.num_rows <= @seconds2h + @margin_of_error &&
-           future_quotes30m.num_rows >= 1 do
-        index_prices = Enum.map(inner_quotes.rows, &Enum.at(&1, 1))
-        index_prices_last_hour = Enum.slice(index_prices, @seconds1h, @seconds2h)
-        stats_map2h = Statistex.statistics(index_prices)
-        stats_map1h = Statistex.statistics(index_prices_last_hour)
-
-        future_10min_price = Enum.at(Enum.at(future_quotes10m.rows, 0), 1)
-        future_30min_price = Enum.at(Enum.at(future_quotes30m.rows, 0), 1)
-
-        delta_10min = (future_10min_price - parent_price) / parent_price * 100.0
-        delta_30min = (future_30min_price - parent_price) / parent_price * 100.0
-
-        IO.puts("\ntwo hours prior: #{inspect(stats_map2h)}")
-        IO.puts("\n one hour prior: #{inspect(stats_map1h)}\n\n")
-        IO.puts("\n   10 min alist: #{inspect(future_quotes10m)}\n\n")
-        IO.puts("\n   10 min after: #{inspect(future_10min_price)}\n\n")
-        IO.puts("\n   10 min delta: #{inspect(delta_10min)}\n\n")
-        IO.puts("\n   30 min alist: #{inspect(future_quotes30m)}\n\n")
-        IO.puts("\n   30 min after: #{inspect(future_30min_price)}\n\n")
-        IO.puts("\n   30 min delta: #{inspect(delta_30min)}\n\n")
-
-        Postgrex.query(
-          pid,
-          "INSERT INTO dydxd (dydx_id, trailing_2h_average, trailing_2h_standard_deviation, trailing_2h_variance, trailing_2h_sample_size, trailing_1h_average, trailing_1h_standard_deviation, trailing_1h_variance, trailing_1h_sample_size, future_10min_price, future_30min_price, delta_10min, delta_30min) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
-          [
-            parent_id,
-            stats_map2h.average,
-            stats_map2h.standard_deviation,
-            stats_map2h.variance,
-            stats_map2h.sample_size,
-            stats_map1h.average,
-            stats_map1h.standard_deviation,
-            stats_map1h.variance,
-            stats_map1h.sample_size,
-            future_10min_price,
-            future_30min_price,
-            delta_10min,
-            delta_30min
-          ]
-        )
-      else
-        IO.puts(
-          "Not enough predecessor trades in the database, or future quotes: " <>
-            Integer.to_string(inner_quotes.num_rows) <>
-            Integer.to_string(future_quotes30m.num_rows) <>
-            " in prior and forward respectively.  Likely related to startup or a crash.  Note, this allows for +- 100 margin of error (seconds off, gap in http return in db)"
-        )
-      end
+    # need the 24 hours you are iterating, plus the 30 mins forward and 2 hours back
+    if subservient_quotes.num_rows <
+         quotes.num_rows + @seconds30min + @seconds2h - @margin_of_error do
+      raise "Oh no, not enough data yet!"
     end
 
-    Enum.each(quotes.rows, &pp_row.(&1))
+    ### un comment me when you're feeling dumb
+    #    raise "for now just read the stats above and grok"
+
+    pp_row = fn rowwi ->
+      {row, index} = rowwi
+      IO.inspect(row)
+
+      parent_id = Enum.at(row, 0)
+      parent_price = Enum.at(row, 1)
+
+      ### this stuff is fun to sanity check yourself...the time in current row should sandwich
+      # IO.puts("#{parent_id} #{parent_price} #{index}")
+      # prior_five_prices = Enum.slice(subservient_quotes.rows, index - 5, 5)
+      # following_five_prices = Enum.slice(subservient_quotes.rows, index + 1, 5)
+      # IO.inspect(prior_five_prices)
+      # IO.inspect(following_five_prices)
+
+      trailing_rows_2h = Enum.slice(subservient_quotes.rows, index - @seconds2h, @seconds2h)
+      trailing_rows_1h = Enum.slice(subservient_quotes.rows, index - @seconds1h, @seconds1h)
+      future_10min_price = Enum.at(Enum.at(subservient_quotes.rows, index + @seconds10min), 1)
+      future_30min_price = Enum.at(Enum.at(subservient_quotes.rows, index + @seconds30min), 1)
+
+      index_prices_last_2_hours = Enum.map(trailing_rows_2h, &Enum.at(&1, 1))
+      index_prices_last_1_hour = Enum.map(trailing_rows_1h, &Enum.at(&1, 1))
+      stats_map2h = Statistex.statistics(index_prices_last_2_hours)
+      stats_map1h = Statistex.statistics(index_prices_last_1_hour)
+
+      delta_10min = (future_10min_price - parent_price) / parent_price * 100.0
+      delta_30min = (future_30min_price - parent_price) / parent_price * 100.0
+
+      Postgrex.query(
+        pid,
+        "INSERT INTO dydxd (dydx_id, trailing_2h_average, trailing_2h_standard_deviation, trailing_2h_variance, trailing_2h_sample_size, trailing_1h_average, trailing_1h_standard_deviation, trailing_1h_variance, trailing_1h_sample_size, future_10min_price, future_30min_price, delta_10min, delta_30min) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+        [
+          parent_id,
+          stats_map2h.average,
+          stats_map2h.standard_deviation,
+          stats_map2h.variance,
+          stats_map2h.sample_size,
+          stats_map1h.average,
+          stats_map1h.standard_deviation,
+          stats_map1h.variance,
+          stats_map1h.sample_size,
+          future_10min_price,
+          future_30min_price,
+          delta_10min,
+          delta_30min
+        ]
+      )
+    end
+
+    Enum.each(Enum.with_index(quotes.rows), &pp_row.(&1))
 
     Process.exit(pid, :shutdown)
   end
