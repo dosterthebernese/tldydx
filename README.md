@@ -70,7 +70,7 @@ mix compile
 
 ### To run on production  
 
-mid Dmn --cleaner  
+mix Dmn --cleaner  
 
 mix Dmn --builder  
 
