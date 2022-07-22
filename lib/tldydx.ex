@@ -23,6 +23,7 @@ defmodule TLDYDX do
   @seconds5min 300
   @seconds30min 1800
   @margin_of_error 100
+  @a_little_sumpin 10
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
   @orderbook URI.parse("https://api.dydx.exchange/v3/orderbook")
   @pgcreds [
@@ -145,8 +146,8 @@ defmodule TLDYDX do
     {:ok, pid} = Postgrex.start_link(@pgcreds)
     ### go back from start 24 hours for your rows to iterate
     gtedate = DateTime.add(ltdate, -@seconds24h, :second)
-    ### for max, following 30 mins for data
-    subservient_ltdate = DateTime.add(ltdate, @seconds30min, :second)
+    ### for max, following 30 mins for data plus a lil sumpin
+    subservient_ltdate = DateTime.add(ltdate, @seconds30min + @a_little_sumpin, :second)
     ### for min, prior 2 hours for data
     subservient_gtedate = DateTime.add(gtedate, -@seconds2h, :second)
 
@@ -236,7 +237,7 @@ defmodule TLDYDX do
     ### go back from start 30 mins for your rows to iterate
     gtedate = DateTime.add(ltdate, -@seconds30min, :second)
     ### for max, following 10 mins for data
-    subservient_ltdate = DateTime.add(ltdate, @seconds10min, :second)
+    subservient_ltdate = DateTime.add(ltdate, @seconds10min + @a_little_sumpin, :second)
     ### for min, prior 10 mins for data
     subservient_gtedate = DateTime.add(gtedate, -@seconds10min, :second)
 
