@@ -100,11 +100,9 @@ TLDYDX.get_dydx("BTC-USD")
 
 TLDYDX.get_dydx("BTC-USD", a_day_we_know_processed)  
 
-### for a quick demo, use min (10 min and 5 min)  
+### for a quick demo, use defaults...it goes 10 mins earlier than now, for a range of 30 mins, with 10 back 10 forward
 
 TLDYDX.get_dydx_min("BTC-USD")  
-
-note that you'll need to wait 20 mins, before data (plus minus 10 etc) will start to generate results  
 
 
 ### To dump from prod for analytics local  
