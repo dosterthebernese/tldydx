@@ -68,6 +68,17 @@ mix deps.get
 
 mix compile  
 
+#### postgres .env file
+
+please create in main dir
+
+GCPPOSTGRESIP=<get from gcp or localhost if on local machine etc>  
+GCPPOSTGRESUSER="postgres"  
+GCPPOSTGRESPASSWORD=<you need to set one>  
+GCPPOSTGRESDB="tradellama"  
+
+
+
 ### To run on production  
 
 mix Dmn --cleaner  
@@ -128,6 +139,8 @@ you will get your pub IP - add it to the GCP postgres cloud sql authorized netwo
 sanity check  
 
 psql "sslmode=disable dbname=postgres user=postgres hostaddr=35.226.13.55"  
+
+
 
 
 

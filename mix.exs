@@ -27,7 +27,8 @@ defmodule TLDYDX.MixProject do
       {:httpoison, "~> 1.8"},
       {:poison, "~> 5.0"},
       {:postgrex, "~> 0.16.3"},
-      {:statistex, "~> 1.0"}
+      {:statistex, "~> 1.0"},
+      {:dotenv_parser, "~> 2.0"}
     ]
   end
 end
