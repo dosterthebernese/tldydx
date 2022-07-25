@@ -113,6 +113,23 @@ scp -i "newllamaataws.pem" ubuntu@ec2-54-165-222-209.compute-1.amazonaws.com:/ho
 
 sudo -u postgres psql -d tradellama -f dydx.sql  
 
+### To dump JUST the data
+
+sudo -u postgres pg_dump --column-inserts --data-only --table=dydx tradellama > dydxdump.sql
+
+### GCP postgres stuff
+
+get your public ip  
+
+dig +short myip.opendns.com @resolver1.opendns.com.  
+
+you will get your pub IP - add it to the GCP postgres cloud sql authorized networks  
+
+sanity check  
+
+psql "sslmode=disable dbname=postgres user=postgres hostaddr=35.226.13.55"  
+
+
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 by adding `tldydx` to your list of dependencies in `mix.exs`:

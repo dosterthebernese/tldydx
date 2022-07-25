@@ -27,9 +27,13 @@ defmodule TLDYDX do
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
   @orderbook URI.parse("https://api.dydx.exchange/v3/orderbook")
   @pgcreds [
-    hostname: "localhost",
+    #    hostname: "localhost",
+    # our google public facing ip
+    hostname: "35.226.13.55",
     username: "postgres",
-    password: "Z3tonium",
+    #    password: "Z3tonium",
+    # well, we had to keep something private...make your own!
+    password: "",
     database: "tradellama"
   ]
 
