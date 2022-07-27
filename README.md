@@ -111,14 +111,13 @@ TLDYDX.get_dydx("BTC-USD")
 
 TLDYDX.get_dydx("BTC-USD", a_day_we_know_processed)  
 
+#### a full analysis of a day, should bring local from goog
+
 a_day_we_know_processed = DateTime.new(~D[2022-07-26], ~T[23:59:59.000], "Etc/UTC")  
 
-TLDYDX.get_dydx("BTC-USD") 
+#### bit coind, some day, a full day grinded, 2 hour back forward
 
-TLDYDX.get_dydx("BTC-USD", a_day_we_know_processed)  
-
-
-
+TLDYDX.get_dydx("BTC-USD",86400,7200,a_day_we_know_processed)  
 
 ### for a quick demo, use defaults...it goes 10 mins earlier than now, for a range of 30 mins, with 10 back 10 forward
 
