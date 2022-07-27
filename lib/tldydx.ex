@@ -45,6 +45,13 @@ defmodule TLDYDX do
       password: System.fetch_env!("LOCALPOSTGRESPASSWORD"),
       database: System.fetch_env!("LOCALPOSTGRESDB")
     ]
+
+    # [
+    #   hostname: System.fetch_env!("GCPPOSTGRESIP"),
+    #   username: System.fetch_env!("GCPPOSTGRESUSER"),
+    #   password: System.fetch_env!("GCPPOSTGRESPASSWORD"),
+    #   database: System.fetch_env!("GCPPOSTGRESDB")
+    # ]
   end
 
   def hello do

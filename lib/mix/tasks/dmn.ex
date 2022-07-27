@@ -10,7 +10,13 @@ defmodule Mix.Tasks.Dmn do
 
   def run(args) do
     case OptionParser.parse(args,
-           strict: [looper: :boolean, cleaner: :boolean, builder: :boolean, snapper: :boolean]
+           strict: [
+             looper: :boolean,
+             cleaner: :boolean,
+             builder: :boolean,
+             postgoogle: :boolean,
+             snapper: :boolean
+           ]
          ) do
       {[looper: true], _, _} ->
         Mix.Task.run("app.config")
@@ -48,7 +54,7 @@ defmodule Mix.Tasks.Dmn do
         TLDYDX.optimize_database()
         TLDYDX.build_derivative_database()
 
-      {[builder_local: true], _, _} ->
+      {[postgoogle: true], _, _} ->
         Mix.Task.run("app.config")
         Application.ensure_all_started(:postgrex)
         #        TLDYDX.build_database()
