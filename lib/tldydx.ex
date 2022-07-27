@@ -26,12 +26,26 @@ defmodule TLDYDX do
   @a_little_sumpin 10
   @markets URI.parse("https://api.dydx.exchange/v3/markets")
   @orderbook URI.parse("https://api.dydx.exchange/v3/orderbook")
-  @pgcreds [
-    hostname: System.fetch_env!("GCPPOSTGRESIP"),
-    username: System.fetch_env!("GCPPOSTGRESUSER"),
-    password: System.fetch_env!("GCPPOSTGRESPASSWORD"),
-    database: System.fetch_env!("GCPPOSTGRESDB")
-  ]
+
+  # @pgcredsProd [
+  #   hostname: System.fetch_env!("GCPPOSTGRESIP"),
+  #   username: System.fetch_env!("GCPPOSTGRESUSER"),
+  #   password: System.fetch_env!("GCPPOSTGRESPASSWORD"),
+  #   database: System.fetch_env!("GCPPOSTGRESDB")
+  # ]
+
+  def wtf do
+    get_pg_creds()
+  end
+
+  defp get_pg_creds do
+    [
+      hostname: System.fetch_env!("LOCALPOSTGRESIP"),
+      username: System.fetch_env!("LOCALPOSTGRESUSER"),
+      password: System.fetch_env!("LOCALPOSTGRESPASSWORD"),
+      database: System.fetch_env!("LOCALPOSTGRESDB")
+    ]
+  end
 
   def hello do
     IO.inspect(System.fetch_env!("GCPPOSTGRESIP") == "This is a\nmultiline value.")
@@ -82,7 +96,7 @@ defmodule TLDYDX do
   end
 
   def snapshot_markets() do
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    {:ok, pid} = Postgrex.start_link(get_pg_creds())
 
     pp_mkt = fn mkt ->
       {m, md} = mkt
@@ -155,7 +169,7 @@ defmodule TLDYDX do
     back_and_forward_range_halved = div(@seconds10min, 2)
     ltdate = DateTime.add(ltdateraw, -(back_and_forward_range + @a_little_sumpin), :second)
 
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    {:ok, pid} = Postgrex.start_link(get_pg_creds())
     gtedate = DateTime.add(ltdate, -iterate_range, :second)
     subservient_ltdate = DateTime.add(ltdate, back_and_forward_range + @a_little_sumpin, :second)
     subservient_gtedate = DateTime.add(gtedate, -back_and_forward_range, :second)
@@ -264,7 +278,7 @@ defmodule TLDYDX do
   end
 
   def build_derivative_database() do
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    {:ok, pid} = Postgrex.start_link(get_pg_creds())
 
     query1 =
       Postgrex.prepare!(
@@ -277,7 +291,7 @@ defmodule TLDYDX do
   end
 
   def build_database() do
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    {:ok, pid} = Postgrex.start_link(get_pg_creds())
 
     query =
       Postgrex.prepare!(
@@ -290,21 +304,21 @@ defmodule TLDYDX do
   end
 
   def clean_database() do
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    {:ok, pid} = Postgrex.start_link(get_pg_creds())
 
     query = Postgrex.prepare!(pid, "", "DROP TABLE dydx")
     Postgrex.execute(pid, query, [])
   end
 
   def clean_derivative_database() do
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    {:ok, pid} = Postgrex.start_link(get_pg_creds())
 
     query1 = Postgrex.prepare!(pid, "", "DROP TABLE dydxd")
     Postgrex.execute(pid, query1, [])
   end
 
   def optimize_database() do
-    {:ok, pid} = Postgrex.start_link(@pgcreds)
+    {:ok, pid} = Postgrex.start_link(get_pg_creds())
 
     query1 =
       Postgrex.prepare!(

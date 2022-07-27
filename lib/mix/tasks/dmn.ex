@@ -13,6 +13,7 @@ defmodule Mix.Tasks.Dmn do
            strict: [looper: :boolean, cleaner: :boolean, builder: :boolean, snapper: :boolean]
          ) do
       {[looper: true], _, _} ->
+        Mix.Task.run("app.config")
         Application.ensure_all_started(:hackney)
         Application.ensure_all_started(:postgrex)
 
@@ -29,16 +30,19 @@ defmodule Mix.Tasks.Dmn do
         end)
 
       {[snapper: true], _, _} ->
+        Mix.Task.run("app.config")
         Application.ensure_all_started(:hackney)
         Application.ensure_all_started(:postgrex)
         TLDYDX.snapshot_markets()
 
       {[cleaner: true], _, _} ->
+        Mix.Task.run("app.config")
         Application.ensure_all_started(:postgrex)
         TLDYDX.clean_derivative_database()
         TLDYDX.clean_database()
 
       {[builder: true], _, _} ->
+        Mix.Task.run("app.config")
         Application.ensure_all_started(:postgrex)
         TLDYDX.build_database()
         TLDYDX.optimize_database()

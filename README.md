@@ -124,6 +124,14 @@ scp -i "newllamaataws.pem" ubuntu@ec2-54-165-222-209.compute-1.amazonaws.com:/ho
 
 sudo -u postgres psql -d tradellama -f dydx.sql  
 
+the google version  
+
+sudo -u postgres pg_dump -h 35.226.13.55 -d tradellama -t dydx > dydx.sql  
+
+sudo -u postgres psql -d tradellama -f dydx.sql  
+
+
+
 ### To dump JUST the data
 
 sudo -u postgres pg_dump --column-inserts --data-only --table=dydx tradellama > dydxdump.sql
@@ -134,6 +142,10 @@ get your public ip
 
 dig +short myip.opendns.com @resolver1.opendns.com.  
 
+on my home ubuntu, had to do this  
+
+dig -4 +short myip.opendns.com @resolver1.opendns.com.
+
 you will get your pub IP - add it to the GCP postgres cloud sql authorized networks  
 
 sanity check  
@@ -141,8 +153,15 @@ sanity check
 psql "sslmode=disable dbname=postgres user=postgres hostaddr=35.226.13.55"  
 
 
+### and since latest postges, from https://techviewleo.com/how-to-install-postgresql-database-on-ubuntu/  
 
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -  
+
+sudo apt -y update  
+
+sudo apt -y install postgresql-14  
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 by adding `tldydx` to your list of dependencies in `mix.exs`:
