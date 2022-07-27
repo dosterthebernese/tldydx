@@ -48,6 +48,13 @@ defmodule Mix.Tasks.Dmn do
         TLDYDX.optimize_database()
         TLDYDX.build_derivative_database()
 
+      {[builder_local: true], _, _} ->
+        Mix.Task.run("app.config")
+        Application.ensure_all_started(:postgrex)
+        #        TLDYDX.build_database()
+        TLDYDX.optimize_database()
+        TLDYDX.build_derivative_database()
+
       _ ->
         IO.puts(
           "I do not understand:  #{inspect(OptionParser.parse(args, strict: [looper: :boolean]))}"
