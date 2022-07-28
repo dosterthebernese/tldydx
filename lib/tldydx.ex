@@ -174,7 +174,12 @@ defmodule TLDYDX do
     #    back_and_forward_range_halved = @seconds10min / 2
     # need as integer dummy
     back_and_forward_range_halved = div(back_and_forward_range, 2)
-    ltdate = DateTime.add(ltdateraw, -(back_and_forward_range + @a_little_sumpin), :second)
+
+    # sadly this only works if you're using the default above, which would be now, which then needs to go back in time to work
+    # but that's no bueno for when processing proper
+    #    ltdate = DateTime.add(ltdateraw, -(back_and_forward_range + @a_little_sumpin), :second)
+    # so we're going to assume you're not just doing this on the fly in real time
+    ltdate = ltdateraw
 
     {:ok, pid} = Postgrex.start_link(get_pg_creds())
     gtedate = DateTime.add(ltdate, -iterate_range, :second)
